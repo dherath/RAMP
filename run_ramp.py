@@ -53,25 +53,66 @@ p_limit = 1
 data = extract_time_series('data/toy_dataset.txt')
 labels = extract_truth_labels('data/toy_truth_labels.txt')
 
-#print(labels)
-
 RAMP = model.RAMP(subseq_length,feedback_period,num_features,bias,start_index,theta,user_feedback,p_limit)
 anomaly_flags, anomaly_scores, contrib = RAMP.execute(data,labels)
 
-# plotting results
-print("plotting")
-thresh = np.ones([np.size(anomaly_scores)])*theta
+
+#-------------------------------------------------------
+#  Plotting Results
+#-------------------------------------------------------
+
+
+thresh = np.ones(len(anomaly_scores))*theta
+sz = len(anomaly_scores) # becuase the final data point will be at len(data) - self.m
+
 plt.figure()
-plt.subplot(211)
-plt.plot(anomaly_scores)
-plt.plot(thresh)
+
+plt.subplot(311)
+plt.plot(data[0,0:sz])
+plt.title('time series dimension 1 (time-difference)')
+plt.ylim((0,2000))
+
+plt.subplot(312)
+plt.plot(data[1,0:sz])
+plt.title('time series dimension 2 (workflow-events)')
+
+plt.subplot(313)
+plt.plot(data[2,0:sz])
+plt.title('time series dimension 3 (IP-change)')
+
+plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=None, hspace=0.50)
+plt.gcf().set_size_inches(18.5,8.5)
+#plt.show()
+plt.savefig('image_data.jpeg',farmeon=False,bbox_inches='tight')
+
+plt.figure()
+
+plt.subplot(311)
+plt.plot(anomaly_scores,color = 'black',label = 'anomaly score')
+plt.plot(thresh,color = 'red', label = 'threshold')
+plt.title('RAMP - result (anomoalies)')
 plt.ylim((0,1))
+plt.legend(frameon = False,loc = 'upper left')
+
+plt.subplot(312)
+legends = ['dim 1 (time-difference)','dim 2 (workflow-events)', 'dim 3 (IP-change)']
+for i in range(num_features):
+    feature_contribution = []
+    legend_label = legends[i]
+    for value in contrib:
+        feature_contribution.append(value[i])
+    plt.plot(feature_contribution,label = legend_label)
+plt.legend(frameon = False,loc = 'upper left')
+plt.title('RAMP - result (contribution)')
+plt.ylim((-0.1,1.1))
+
+plt.subplot(313)
+plt.plot(labels,color = 'black')
+plt.xlabel('Timestep',fontsize = '12')
+plt.title('truth labels (1 - anomaly, 0 - benign)')
 
 
-plt.subplot(212)
-plt.plot(labels)
-
-#plt.subplot(313)
-#plt.plot(workflow)
-
-plt.show()
+plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=None, hspace=0.50)
+plt.gcf().set_size_inches(18.5,8.5)
+#plt.show()
+plt.savefig('image_result.jpeg',farmeon=False,bbox_inches='tight')

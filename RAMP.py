@@ -179,7 +179,7 @@ class RAMP:
         # an illustrative example of how to run RAMP
         # includes code steps to run a single non-interleaved process, proc_id == 0 is set as default
         # the steps in this function can be extended for interleaved processes as well
-        # extending it will require handling additional corner case for when a process is interleaved
+        # extending it will require handling additional a corner case for when a process is interleaved
         # for the first time while another process is already executing
         #------------------------
         @param time_series : the multivariate time series
