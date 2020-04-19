@@ -9,14 +9,16 @@ Comparing the truth labels (__final subfigure__) with the RAMP result for the an
 
 **requirements:** python3, numpy
 
-`@inproceedings{herath2019ramp,
+```
+@inproceedings{herath2019ramp,
   title={RAMP: Real-Time Anomaly Detection in Scientific Workflows},
   author={Herath, J Dinal and Bai, Changxin and Yan, Guanhua and Yang, Ping and Lu, Shiyong},
   booktitle={2019 IEEE International Conference on Big Data (Big Data)},
   pages={1367--1374},
   year={2019},
   organization={IEEE}
-}`
+}
+```
 
 
 
