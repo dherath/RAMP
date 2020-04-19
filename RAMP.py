@@ -8,7 +8,7 @@ import sys
 
 class RAMP:
 
-    def __init__(subseq_length,feedback_period,num_features,bias,start_index,threshold,give_user_feedback,p_limit=1):
+    def __init__(self,subseq_length,feedback_period,num_features,bias,start_index,threshold,give_user_feedback,p_limit=1):
         """
         init function
         """
@@ -57,7 +57,7 @@ class RAMP:
                 abs_distance = np.sum(np.abs(np.subtract(T[j],self.T_[proc_id,j,k:k+self.m])))
                 compared_with = np.sum(np.abs(self.T_[proc_id,j,k:k+self.m]))
                 relative_distance = abs_distance / compared_with
-                if relative_distance > min_rd:
+                if relative_distance <  min_rd:
                     min_rd = relative_distance
                     min_k = k
             self.R[proc_id,j,t] = min_k
@@ -68,8 +68,9 @@ class RAMP:
         C_t = np.divide(D_min,beta)# computing the contribution to the anomaly
         self.H[proc_id,t] = beta / self.theta # updating the ratio between (un weighted beta/theta)
         # computing the weighted score
-        if int(key) in W[proc_id]:
-            beta = W[proc_id][int(key)] * beta
+        if int(key) in self.W[proc_id]:
+            print(int(key),self.W[proc_id][int(key)])
+            beta = self.W[proc_id][int(key)] * beta
         # get anomaly flag
         if beta > self.theta:
             return [True,beta,C_t]
@@ -86,7 +87,7 @@ class RAMP:
         @return probabilistic value [0,1], if ~1 then most likely TP
         """
         if proc_time > self.M:
-            return np.abs(1 - np.exp(self.K[proc_id]**b - proc_time**b))
+            return np.abs(1 - np.exp(self.K[proc_id]**self.b - proc_time**self.b))
         else:
             return 0
         
@@ -105,6 +106,7 @@ class RAMP:
                 keys[k] += ((self.M-self.m)**j)*(self.R[proc_id,j,t] - self.m + k)
             # add weight into W, if it does not exist in W
             if keys[k] not in self.W[proc_id]:
+                #print('here')
                 self.W[proc_id][keys[k]] = 1
             # weight updating step
             if k == self.m :
@@ -172,19 +174,17 @@ class RAMP:
         A_result = []
         #--------------------
         num_loaded_proc = 0
-        proc_ids = np.zeros(self.M) # for past M time steps, the indices for the closest identified procs when interleaved
-        proc_time = np.zeros(self.num_proc) # time with respect to the time for each process
+        proc_ids = np.zeros(self.M,int) # for past M time steps, the indices for the closest identified procs when interleaved
+        proc_time = np.zeros(self.num_proc,int) # time with respect to the time for each process
         time = 0 # the start time index for the entire time series
-        num_fp = np.zeros(self.num_proc) # number of FP marked in window of M time steps
+        num_fp = np.zeros(self.num_proc,int) # number of FP marked in window of M time steps
         U_TP = [[] for i in range(self.num_proc)] # true positive indices
         num_samples = np.size(time_series,1) - self.m # the total number of sub-sequences
-        user_feedback_record = np.ones([self.M])*(-1) # 0: if no anomaly, 1: is anomaly, -1: unmarked/shouldn't be used
         # Loop through all sub-sequences in time series 
-        for time < num_samples:
+        while time < num_samples:
             t = time  % self.M
-            user_feedback_record[t] = complete_user_feedback[time]
             # For the first M steps for any new process interleaved/non-interleaved
-            if time == int(self.start_time[num_loaded_proc]):
+            if time == int(self.start_index[num_loaded_proc]):
                 self.T_[num_loaded_proc,:,:] = time_series[:,time:time+self.M]
                 self.K[num_loaded_proc] = self.M # p must be 0
                 # fill in temporary values for beta, A, C
@@ -193,7 +193,7 @@ class RAMP:
                     A_result.append(0) # 0 = False
                     C_result.append([-1 for i in range(self.d)])
                 # increment the proc_id ++
-                proc_time[num_loaded_proc] = M
+                proc_time[num_loaded_proc] = self.M
                 num_loaded_proc += 1
                 time += self.M
             else:
@@ -207,7 +207,7 @@ class RAMP:
                 for i in range(num_loaded_proc):
                     anomaly_flag, beta, C_t = self.anomaly_detection(t,T,i)
                     if beta <= temp_beta:
-                        proc_id = i
+                        proc_id = int(i)
                         temp_beta = beta
                         temp_anomaly_flag = anomaly_flag
                         temp_C_t = C_t
@@ -215,7 +215,7 @@ class RAMP:
                 beta_result.append(temp_beta)
                 A_result.append(1 if temp_anomaly_flag == True else 0)
                 C_result.append(C_t)
-                proc_ids[t] = proc_id # if user feedback is given, then must remember the process ids in case it is interleaved 
+                proc_ids[t] = int(proc_id) # if user feedback is given, then must remember the process ids in case it is interleaved 
                 # 2. update the proc time and get uncertainty
                 proc_time[proc_id] += 1
                 p = self.uncertainty_function(proc_time[proc_id],proc_id)
