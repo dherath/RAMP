@@ -7,10 +7,27 @@ import sys
 #--------------------------------------------------------------
 
 class RAMP:
+    """
+    - author: J. Dinal Herath
+    - For details refer to paper: 
+         'RAMP: Real-Time Anomaly Detection in Scientific Workflows' 
+          by J. Dinal Herath, Changxin Bai, Guanhua Yan, Ping Yang, Shiyong Lu. 
+          In: IEEE International Conference on Big Data (2019). 
+    -Link:
+         http://www.dinalherath.com/papers/2019RAMP_extended_paper.pdf
+    """
 
     def __init__(self,subseq_length,feedback_period,num_features,bias,start_index,threshold,give_user_feedback,p_limit=1):
         """
         init function
+        ---------------------
+        @param subseq_lengtn : the length of a sub-sequence
+        @param feedback_period : the length of T' used as comparison
+        @param num_features : the dimensions of the time series
+        @param start_index : defaults to [0] if it is a non-interleaved process, otherwise must have indices for when processes start
+        @param threshold : theta, if anomaly score > theta then Anomaly == True, else False
+        @param gives_user_feedback : defaults to True, as RAMP was intended with user involvement, but can be False
+        @param p_limit : defaults to 1, if user feedback is given, an additional modification for reducing penalization for repititive anomalies
         """
         self.m = subseq_length
         self.M = feedback_period
@@ -162,11 +179,13 @@ class RAMP:
     def execute(self,time_series,truth_labels=[]):
         """
         # an illustrative example of how to run RAMP
-        # code steps to run a single non-interleaved process, proc_id == 0 is set as default
+        # includes code steps to run a single non-interleaved process, proc_id == 0 is set as default
         # the steps in this function can be extended for interleaved processes as well
+        # extending it will require handling additional corner case for when a process is interleaved
+        # for the first time while another process is already executing
         #------------------------
         @param time_series : the multivariate time series
-        @param truth_labels : the truth labels, 1 = anomaly, 0 = benign (only needed is user_feedback == True)
+        @param truth_labels : the truth labels, 1 = anomaly, 0 = benign (only needed if user_feedback == True)
         #------------------------
         @return [anomaly_flags,anomaly_scores,contributions]
         """
