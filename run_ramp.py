@@ -93,7 +93,7 @@ plt.figure()
 plt.subplot(311)
 plt.plot(anomaly_scores,color = 'black',label = 'anomaly score')
 plt.plot(thresh,color = 'red', label = 'threshold')
-plt.title('RAMP - result (anomoalies)')
+plt.title('RAMP - result (anomalies)')
 plt.ylim((0,1))
 plt.legend(frameon = False,loc = 'upper left')
 
