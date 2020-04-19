@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-import ramp as model
+import RAMP as model
 
 #-------------------------------------------------------
 #  helper functions
