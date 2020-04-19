@@ -66,7 +66,7 @@ thresh = np.ones(len(anomaly_scores))*theta
 sz = len(anomaly_scores) # becuase the final data point will be at len(data) - self.m
 
 
-plt.rcParams["font.size"] = "18"
+plt.rcParams["font.size"] = "16"
 
 plt.figure()
 
@@ -111,7 +111,7 @@ plt.ylim((-0.1,1.1))
 
 plt.subplot(313)
 plt.plot(labels,color = 'black')
-plt.xlabel('Timestep',fontsize = '12')
+#plt.xlabel('Timestep',fontsize = '12')
 plt.title('truth labels (1 - anomaly, 0 - benign)')
 
 
