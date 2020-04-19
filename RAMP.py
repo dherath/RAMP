@@ -158,18 +158,28 @@ class RAMP:
     #------------------------------------
     
     def run_RAMP(self,time_series,truth_labels=[]):
+        """
+        code to run a single experiment for an interleaved/non-interleaved experiment
+        this example code shows the steps each algorithm must be called in RAMP
+        #------------------------
+        @param time_series : the multivariate time series
+        @param truth_labels : the truth labels, 1 = anomaly, 0 = benign
+        #------------------------
+        @return [anomaly_flags,anomaly_scores,contributions]
+        """
         beta_result = []
         C_result = []
         A_result = []
-        #--------------
+        #--------------------
         num_loaded_proc = 0
         proc_ids = np.zeros(self.M) # for past M time steps, the indices for the closest identified procs when interleaved
         proc_time = np.zeros(self.num_proc) # time with respect to the time for each process
         time = 0 # the start time index for the entire time series
-        num_fp = 0 # number of FP marked in window of M time steps
-        U_TP = [] # true positive indices
+        num_fp = np.zeros(self.num_proc) # number of FP marked in window of M time steps
+        U_TP = [[] for i in range(self.num_proc)] # true positive indices
         num_samples = np.size(time_series,1) - self.m # the total number of sub-sequences
         user_feedback_record = np.ones([self.M])*(-1) # 0: if no anomaly, 1: is anomaly, -1: unmarked/shouldn't be used
+        # Loop through all sub-sequences in time series 
         for time < num_samples:
             t = time  % self.M
             user_feedback_record[t] = complete_user_feedback[time]
@@ -217,21 +227,19 @@ class RAMP:
                 if self.user_feedback == True:
                     if temp_anomaly_flag == True:
                         if truth_labels[time] == 1:
-                            U_TP.append(t)
+                            U_TP[proc_ids[t]].append(t)
                         else:
-                            num_fp += 1
+                            num_fp[proc_ids[t]] += 1
                 # 5. do human in the loop training ()
                 if self.user_feedback == True :
-                # continue from here ...    
-                    
-                        
-                    
-                
-                
-                
-                
-                
-                
+                    for i in range(num_loaded_proc):
+                        self.human_in_the_loop_training(proc_time[i],num_fp[i],U_TP[i],i)
+                    # reset the number of false positives, TP indices from user feedback
+                    num_fp = [0 for i in range(self.num_proc)]
+                    U_TP = [[] for i in range(self.num_proc)]
+                # 6. increment the time
+                time += 1
+        # --- end loop -------------------
         return A_result,beta_result,C_result
 
     #------------------------------------
