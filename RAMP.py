@@ -106,7 +106,6 @@ class RAMP:
                 keys[k] += ((self.M-self.m)**j)*(self.R[proc_id,j,t] - self.m + k)
             # add weight into W, if it does not exist in W
             if keys[k] not in self.W[proc_id]:
-                #print('here')
                 self.W[proc_id][keys[k]] = 1
             # weight updating step
             if k == self.m :
@@ -180,11 +179,12 @@ class RAMP:
         num_fp = np.zeros(self.num_proc,int) # number of FP marked in window of M time steps
         U_TP = [[] for i in range(self.num_proc)] # true positive indices
         num_samples = np.size(time_series,1) - self.m # the total number of sub-sequences
+        all_proc_loaded = False
         # Loop through all sub-sequences in time series 
         while time < num_samples:
             t = time  % self.M
             # For the first M steps for any new process interleaved/non-interleaved
-            if time == int(self.start_index[num_loaded_proc]):
+            if all_proc_loaded == False and time == int(self.start_index[num_loaded_proc]):
                 self.T_[num_loaded_proc,:,:] = time_series[:,time:time+self.M]
                 self.K[num_loaded_proc] = self.M # p must be 0
                 # fill in temporary values for beta, A, C
@@ -196,6 +196,8 @@ class RAMP:
                 proc_time[num_loaded_proc] = self.M
                 num_loaded_proc += 1
                 time += self.M
+                if num_loaded_proc == self.num_proc:
+                    all_proc_loaded = True
             else:
                 # For the rest of the time steps
                 T = time_series[:,time:time+self.m] # the input subsequence
