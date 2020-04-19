@@ -1,6 +1,4 @@
 import numpy as np
-import random
-import sys
 
 #--------------------------------------------------------------
 #       RAMP : Real-Time Aggregated Matrix Profile
@@ -13,7 +11,7 @@ class RAMP:
          'RAMP: Real-Time Anomaly Detection in Scientific Workflows' 
           by J. Dinal Herath, Changxin Bai, Guanhua Yan, Ping Yang, Shiyong Lu. 
           In: IEEE International Conference on Big Data (2019). 
-    -Link:
+    - Link:
          http://www.dinalherath.com/papers/2019RAMP_extended_paper.pdf
     """
 
