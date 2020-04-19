@@ -25,7 +25,7 @@ class RAMP:
         self.R = np.zeros([self.num_proc,self.d,self.M]) # the record relative distances for past M steps
         self.prob_previous = np.zeros([self.num_proc]) # the previous probability value per proc
         self.T_ = np.zeros([self.num_proc,self.d,self.M]) # previously S_, the comparison set
-        self.K = np.ones([self.num_proc],int)*self.M # parameter for uncertainty f()
+        self.K = np.zeros([self.num_proc],int) # parameter for uncertainty f()
         self.H = np.zeros([self.num_proc,self.M]) # record for ratio between (un weighted beta/theta) for M steps
         self.W = [dict() for i in range(len(start_index))] # dictionary of weight per process
         self.alpha = self.normalized_gaussian(0,self.m) # used for the training algorithm
@@ -65,11 +65,10 @@ class RAMP:
             beta += min_rd
             D_min[j] = min_rd
         #--------------------
-        C_t = np.divide(D_min,beta)# computing the contribution to the anomaly
-        self.H[proc_id,t] = beta / self.theta # updating the ratio between (un weighted beta/theta)
+        C_t = (np.divide(D_min,beta) if beta > 0 else np.zeros(self.d))# computing the contribution to the anomaly
+        self.H[proc_id,t] = (beta / self.theta if beta > 0 else 1e-10) # updating the ratio between (un weighted beta/theta)
         # computing the weighted score
         if int(key) in self.W[proc_id]:
-            print(int(key),self.W[proc_id][int(key)])
             beta = self.W[proc_id][int(key)] * beta
         # get anomaly flag
         if beta > self.theta:
@@ -133,7 +132,9 @@ class RAMP:
             key = 0 # the index of the weight
             for j in range(self.d):
                 key += ((self.M-self.m)**j)*self.R[proc_id,j,i]
-            self.W[proc_id][key] *= (2/self.H[proc_id,i])
+            if key not in self.W[proc_id]:
+                self.W[proc_id][int(key)] = 1
+            self.W[proc_id][int(key)] *= (2/self.H[proc_id,i])
         return
     
     def normalized_gaussian(self,mu,sigma):
@@ -158,100 +159,75 @@ class RAMP:
     # Running RAMP
     #------------------------------------
     
-    def run_RAMP(self,time_series,truth_labels=[]):
+    def execute(self,time_series,truth_labels=[]):
         """
-        code to run a single experiment for an interleaved/non-interleaved experiment
-        this example code shows the steps each algorithm must be called in RAMP
+        # an illustrative example of how to run RAMP
+        # code steps to run a single non-interleaved process, proc_id == 0 is set as default
+        # the steps in this function can be extended for interleaved processes as well
         #------------------------
         @param time_series : the multivariate time series
-        @param truth_labels : the truth labels, 1 = anomaly, 0 = benign
+        @param truth_labels : the truth labels, 1 = anomaly, 0 = benign (only needed is user_feedback == True)
         #------------------------
         @return [anomaly_flags,anomaly_scores,contributions]
         """
+        # lists for the results
         beta_result = []
         C_result = []
         A_result = []
         #--------------------
-        num_loaded_proc = 0
-        proc_ids = np.zeros(self.M,int) # for past M time steps, the indices for the closest identified procs when interleaved
-        proc_time = np.zeros(self.num_proc,int) # time with respect to the time for each process
-        time = 0 # the start time index for the entire time series
-        num_fp = np.zeros(self.num_proc,int) # number of FP marked in window of M time steps
-        U_TP = [[] for i in range(self.num_proc)] # true positive indices
+        time = 0 # the time steps for the time series
         num_samples = np.size(time_series,1) - self.m # the total number of sub-sequences
-        all_proc_loaded = False
         # Loop through all sub-sequences in time series 
         while time < num_samples:
-            t = time  % self.M
-            # For the first M steps for any new process interleaved/non-interleaved
-            if all_proc_loaded == False and time == int(self.start_index[num_loaded_proc]):
-                self.T_[num_loaded_proc,:,:] = time_series[:,time:time+self.M]
-                self.K[num_loaded_proc] = self.M # p must be 0
-                # fill in temporary values for beta, A, C
+            # num_fp and U_TP are only needed if user feedback is given
+            num_fp = 0 # number of FP marked in window of M time steps
+            U_TP = [] # true positive indices
+            t = time  % self.M # identify the index of R,H w.r.t the current process execution
+            # The first M  samples are considered as the set T' 
+            if time < self.M - self.m:
+                self.T_[0,:,:] = time_series[:,time:time+self.M] # the comparison set, firt M samples
+                self.K[0] = self.M # p must be 0
+                # fill in temporary values for beta, Anomaly flag, Contribution
                 for i in range(self.M):
                     beta_result.append(-1)
                     A_result.append(0) # 0 = False
                     C_result.append([-1 for i in range(self.d)])
-                # increment the proc_id ++
-                proc_time[num_loaded_proc] = self.M
-                num_loaded_proc += 1
-                time += self.M
-                if num_loaded_proc == self.num_proc:
-                    all_proc_loaded = True
+                # increment the proc_time by M steps
+                time = self.M
             else:
                 # For the rest of the time steps
                 T = time_series[:,time:time+self.m] # the input subsequence
-                # 1. call anomaly_detection() for each process and identify proc_id
-                proc_id = 0
-                temp_beta = np.inf # to identify which process is the closest match
-                temp_anomaly_flag = False # temp value for anomaly flag
-                temp_C_t = [0 for i in range(self.d)] # temp variable for contribution
-                for i in range(num_loaded_proc):
-                    anomaly_flag, beta, C_t = self.anomaly_detection(t,T,i)
-                    if beta <= temp_beta:
-                        proc_id = int(i)
-                        temp_beta = beta
-                        temp_anomaly_flag = anomaly_flag
-                        temp_C_t = C_t
-                # update the results
-                beta_result.append(temp_beta)
-                A_result.append(1 if temp_anomaly_flag == True else 0)
+                # 1. call anomaly_detection() for the process
+                anomaly_flag, beta, C_t = self.anomaly_detection(t,T)
+                # append the results
+                beta_result.append(beta)
+                A_result.append(1 if anomaly_flag == True else 0)
                 C_result.append(C_t)
-                proc_ids[t] = int(proc_id) # if user feedback is given, then must remember the process ids in case it is interleaved 
-                # 2. update the proc time and get uncertainty
-                proc_time[proc_id] += 1
-                p = self.uncertainty_function(proc_time[proc_id],proc_id)
+                # 2. get uncertainty
+                p = self.uncertainty_function(time)
                 # 3. call adaptive_training()
-                # modification that training will be done only if p < p_limit ~ 1
+                # modification: training will be done only if p < p_limit ~ 1
+                # this will reduce the penalization for exactly repititive anomalies
+                # when no user feedback is given
+                # if user_feedback == True, then its fine to have p_limit = 1 (default)
                 if p < self.p_limit:
-                    self.adaptive_training(t,p,proc_id)
+                    self.adaptive_training(t,p)
+                # -- optional human_in_the_loop_training() --
                 # 4. update for user feedback if needed
                 if self.user_feedback == True:
-                    if temp_anomaly_flag == True:
+                    if anomaly_flag == True:
                         if truth_labels[time] == 1:
-                            U_TP[proc_ids[t]].append(t)
+                            U_TP.append(t)
                         else:
-                            num_fp[proc_ids[t]] += 1
+                            num_fp += 1
                 # 5. do human in the loop training ()
-                if self.user_feedback == True :
-                    for i in range(num_loaded_proc):
-                        self.human_in_the_loop_training(proc_time[i],num_fp[i],U_TP[i],i)
+                if self.user_feedback == True:
+                    self.human_in_the_loop_training(time,num_fp,U_TP)
                     # reset the number of false positives, TP indices from user feedback
-                    num_fp = [0 for i in range(self.num_proc)]
-                    U_TP = [[] for i in range(self.num_proc)]
+                    num_fp = 0
+                    U_TP = []
+                # -- end of optional training --
                 # 6. increment the time
                 time += 1
         # --- end loop -------------------
         return A_result,beta_result,C_result
-
-    #------------------------------------
-    # helper functions
-    #------------------------------------
-
-    def return_threshold(self):
-        return self.theta
-
-    def update_threshold(self,threshold):
-        self.theta = threshold
-        return
-    
