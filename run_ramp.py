@@ -65,6 +65,9 @@ anomaly_flags, anomaly_scores, contrib = RAMP.execute(data,labels)
 thresh = np.ones(len(anomaly_scores))*theta
 sz = len(anomaly_scores) # becuase the final data point will be at len(data) - self.m
 
+
+plt.rcParams["font.size"] = "18"
+
 plt.figure()
 
 plt.subplot(311)
