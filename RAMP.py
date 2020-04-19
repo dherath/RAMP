@@ -6,7 +6,7 @@ import numpy as np
 
 class RAMP:
     """
-    - author: J. Dinal Herath
+    - Author: J. Dinal Herath
     - For details refer to paper: 
          'RAMP: Real-Time Anomaly Detection in Scientific Workflows' 
           by J. Dinal Herath, Changxin Bai, Guanhua Yan, Ping Yang, Shiyong Lu. 
@@ -201,7 +201,7 @@ class RAMP:
             U_TP = [] # true positive indices
             t = time  % self.M # identify the index of R,H w.r.t the current process execution
             # The first M  samples are considered as the set T' 
-            if time < self.M - self.m:
+            if time < self.M :
                 self.T_[0,:,:] = time_series[:,time:time+self.M] # the comparison set, firt M samples
                 self.K[0] = self.M # p must be 0
                 # fill in temporary values for beta, Anomaly flag, Contribution
