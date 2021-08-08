@@ -1,4 +1,4 @@
-# RAMP: Real-Time Anomaly Detection in Scientific Workflows 
+### RAMP: Real-Time Anomaly Detection in Scientific Workflows 
 
 This repository includes a python implementation of RAMP (Real-Time Aggregated Matrix Profile), a machine learning model originally developed for real-time anomaly detection in scientific workflows. Please refer the [paper](http://www.dinalherath.com/papers/2019RAMP_extended_paper.pdf) for details on algorithms. The code includes an illustrative example for a non-interleaved scientific workflow dataset, generated from [DATAVIEW](https://github.com/shiyonglu/DATAVIEW) workflow management system with synthetic anomalies of two types. The system logs were parsed into a multidimensional time series with three dimensions as shown in image below (__the first three subfigures__). 
 
